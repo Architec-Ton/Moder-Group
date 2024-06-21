@@ -1,8 +1,8 @@
 from aiogram.enums import ChatMemberStatus
 from aiogram import Router, F, Bot
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message
 from config_reader import config
-import re
+
 
 bot = Bot(config.bot_token.get_secret_value(), parse_mode='MarkDown')
 router = Router()
