@@ -34,9 +34,15 @@ async def start(msg: Message):
 @router.message(Command('ban'))
 async def ban_user(msg: Message):
     if await is_admin(msg):
+        if not msg.reply_to_message:
+            await msg.answer("Команда используется как ответ на сообщение")
+            return
+
         user_id = msg.reply_to_message.from_user.id
+        reason = ' '.join(msg.text.split()[1:]) or "Не указана"
+
         await bot.ban_chat_member(msg.chat.id, user_id)
-        await msg.answer("Пользователь заблокирован")
+        await msg.answer(f"Пользователь \"{msg.reply_to_message.from_user.full_name}\" забанен. Причина: {reason}.")
     else:
         await msg.answer("Только админы могут банить пользователей")
         
@@ -54,9 +60,10 @@ async def mute_user(msg: Message):
         return
     
     args = msg.text.split()
-    if len(args) != 3:
-        await msg.answer("Команда записывается как: /mute {время} {единица времени (m,h,d,w,y)}")
+    if len(args) < 3:
+        await msg.answer("Команда записывается как: /mute {время} {единица времени (m,h,d,w,y)} {причина}")
         return
+    
     try:
         duration = int(args[1])
     except ValueError:
@@ -78,13 +85,15 @@ async def mute_user(msg: Message):
         case _:
             await msg.answer("Некорректная единица времени")
             return
-        
+    
+    reason = ' '.join(args[3:]) or "Не указана"
     user_id = msg.reply_to_message.from_user.id
+    
     await bot.restrict_chat_member(
         msg.chat.id,
         user_id,
         ChatPermissions(can_send_messages=False),
         until_date=msg.date + delta
     )
-    await msg.answer(f"Пользователь получил мут на {duration} {unit}")
+    await msg.answer(f"Пользователь \"{msg.reply_to_message.from_user.full_name}\" получил мут на {duration} {unit}. Причина: {reason}.")
     
