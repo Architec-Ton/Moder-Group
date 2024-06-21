@@ -22,12 +22,15 @@ async def delete_link(msg: Message):
         pass
     else:
         await msg.delete()
-        await msg.answer("Ссылки запрещены!")
+        await msg.answer(f"Сообщение пользователя \"{msg.from_user.full_name}\" было *удалено*.\nПричина: *отправка ссылок запрещена.*")
         
 @router.message(F.forward_from | F.forward_from_chat)
 async def handle_forward(msg: Message):
     if not await is_admin(msg):
-        if msg.forward_from or msg.forward_from_chat:
-            await msg.delete()
-            await msg.answer("Пересылка сообщений запрещена")
+        await msg.delete()
+        if msg.forward_from:
+            reason = "сообщение переслано от пользователя"
+        elif msg.forward_from_chat:
+            reason = "сообщение переслано из чата"
+        await msg.answer(f"Сообщение пользователя \"{msg.from_user.full_name}\" было *удалено*.\nПричина: *{reason}*.")
         
