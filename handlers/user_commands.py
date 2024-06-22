@@ -24,7 +24,7 @@ async def check_status(msg: Message):
         
 @router.message(Command('start'))
 async def start(msg: Message):
-    await msg.answer('Привет! Я модератор для architec.ton')
+    await msg.answer('Привет! Я модератор для групп. Просто добавьте меня в группу и я буду удалять сообщения с ссылками,пересылаемые сообщения, а также админы групп смогут выдавать мут и бан пользователям. ')
     
 
     
@@ -97,3 +97,18 @@ async def mute_user(msg: Message):
     )
     await msg.answer(f"Пользователь \"{msg.reply_to_message.from_user.full_name}\" получил мут на {duration} {unit}. Причина: {reason}.")
     
+@router.message(Command('unmute'))
+async def unmute_user(msg: Message):
+    if not await is_admin(msg):
+        await msg.answer("Такие права имеет только админ группы")
+        return
+    if not msg.reply_to_message:
+        await msg.answer("Команда администратора должна быть ответом на чьё-то сообщение")
+        return
+    user_id = msg.reply_to_message.from_user.id
+    await bot.restrict_chat_member(
+        msg.chat.id,
+        user_id,
+        ChatPermissions(can_send_messages=True)
+    )
+    await msg.answer(f"Пользователь {msg.reply_to_message.from_user.full_name} размучен")
