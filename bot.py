@@ -17,8 +17,8 @@ logger.info("Бот запущен и работает...")
 async def main():  
     
     dp.include_routers(
-        handlers.bot_messages.router,
-        handlers.user_commands.router
+        handlers.user_commands.router,
+        handlers.bot_messages.router
     )
     await dp.start_polling(bot)
 

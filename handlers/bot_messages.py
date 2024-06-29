@@ -7,12 +7,24 @@ import re
 bot = Bot(config.bot_token.get_secret_value(), parse_mode='MarkDown')
 router = Router()
 
-ban_words = [
-    r'\b(бля[тд]блядь|ху[йяе]|пизд[аеуыи]еб[атьеуё]|сука|суки|нахуй|ебать)\b',
-    r'\b(fuck|shit|bitch|asshole|damn|crup|motherfucker|cunt)\b'    
+bad_words = [
+    "блядь", "блять", "ебать", "ебаный", "ебать", "ебаться", "пизда", "пиздец",
+    "хуй", "хуёво", "хуевый", "хуеплет", "хуесос", "гандон", "мудак", "дерьмо",
+    "сучка", "сука", "пидор", "пидорас", "мразь", "тварь", "ублюдок", "срака",
+    "залупа", "чмо", "жопа", "бля", "дрянь", "шалава", "шлюха", "мудила",
+    "пиздюк", "гнида", "говно", "пошел на хуй", "иди нахуй", "черт", "еблан",
+    "ебанутый", "ебло", "пидарас", "пидор", "трахать", "ебись", "курва", "сукин сын",
+    "ебал", "ебать", "бля", "епта", "ёпта", "епт", "ёпт", "член", "dick", "шмара", 'сук',
+    "шалава", "пидр", "пидарас", 'трах', "долбоеб", "долбоёб", "далбаеб", "далбаёб", 'хуя',
+    'хуяк'
 ]
 
-filter = F.text.regexp('|'.join(ban_words), flags=re.IGNORECASE)
+def contains_bad_word(message):
+    message_lower = message.lower()
+    for word in bad_words:
+        if word in message_lower:
+            return True
+    return False
 
 links = F.text.regexp(r"http[s]?://")
 
@@ -36,12 +48,15 @@ async def handle_forward(msg: Message):
         await msg.delete()
         if msg.forward_from:
             reason = "сообщение переслано от пользователя"
-        elif msg.forward_from_chat:
+        elif msg.forward_from_chats:
             reason = "сообщение переслано из чата"
         await msg.answer(f"Сообщение пользователя \"{msg.from_user.full_name}\" было *удалено*.\nПричина: *{reason}*.")
         
-@router.message(filter)
+@router.message()
 async def delete_bran(msg: Message):
-    if not await is_admin(msg):
-        await msg.delete()
-        await msg.answer(f"Сообщение пользователя *{msg.from_user.full_name}* было *удалено*.\nПричина: *использование нецензурной лексики*")
+    if contains_bad_word(msg.text):
+        if not await is_admin(msg):
+            await msg.delete()
+            await msg.answer(f"Сообщение пользователя *{msg.from_user.full_name}* было *удалено*.\nПричина: *использование нецензурной лексики*")
+
+        

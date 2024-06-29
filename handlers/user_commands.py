@@ -7,7 +7,6 @@ from config_reader import config
 from datetime import timedelta 
 
 
-
 bot = Bot(config.bot_token.get_secret_value(), parse_mode='MarkDown')
 router = Router()
 
@@ -24,11 +23,7 @@ async def check_status(msg: Message):
         
 @router.message(Command('start'))
 async def start(msg: Message):
-    await msg.answer('Привет! Я модератор для групп. Просто добавьте меня в группу и я буду удалять сообщения с ссылками,пересылаемые сообщения, а также админы групп смогут выдавать мут и бан пользователям. ')
-    
-
-    
-    
+    await msg.answer('Привет! Я модератор для групп. Просто добавьте меня в группу и я буду удалять сообщения с ссылками,пересылаемые сообщения, а также админы групп смогут выдавать мут и бан пользователям.')
 
     
 @router.message(Command('ban'))
@@ -45,8 +40,6 @@ async def ban_user(msg: Message):
         await msg.answer(f"Пользователь \"{msg.reply_to_message.from_user.full_name}\" забанен. Причина: {reason}.")
     else:
         await msg.answer("Только админы могут банить пользователей")
-        
-
 
 
 @router.message(Command('mute'))
