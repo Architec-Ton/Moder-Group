@@ -1,11 +1,15 @@
 from aiogram.enums import ChatMemberStatus
 from aiogram import Router, F, Bot
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 from aiogram.types.chat_permissions import ChatPermissions
 from aiogram.filters import Command
+from aiogram.filters.callback_data import CallbackData
+from aiogram.filters import MagicData
 from config_reader import config
 from datetime import timedelta 
-
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.fsm.context import FSMContext
+import logging
 
 bot = Bot(config.bot_token.get_secret_value(), parse_mode='MarkDown')
 router = Router()
@@ -13,6 +17,9 @@ router = Router()
 async def is_admin(msg: Message):
     user_status = await bot.get_chat_member(msg.chat.id, msg.from_user.id)
     return user_status.status in {ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR}
+
+class SettingsCallback(CallbackData, prefix="settings"):
+    action: str
 
 @router.message(Command('check_status'))
 async def check_status(msg: Message):
@@ -23,7 +30,7 @@ async def check_status(msg: Message):
         
 @router.message(Command('start'))
 async def start(msg: Message):
-    await msg.answer('Привет! Я модератор для групп. Просто добавьте меня в группу и я буду удалять сообщения с ссылками,пересылаемые сообщения, а также админы групп смогут выдавать мут и бан пользователям.')
+    await msg.answer('Привет! Я модератор для групп. Просто добавьте меня в группу и я буду удалять сообщения с ссылками,пересылаемые сообщения, а также админы групп смогут выдавать мут и бан пользователям.\nЧтобы управлять своей группой, введи в ней /menu. Чтобы уведомить о чем-то администраторов группы, введи /alert')
 
     
 @router.message(Command('ban'))
@@ -105,3 +112,27 @@ async def unmute_user(msg: Message):
         ChatPermissions(can_send_messages=True)
     )
     await msg.answer(f"Пользователь {msg.reply_to_message.from_user.full_name} размучен")
+    
+    
+
+@router.message(Command('alert'))
+async def alert_admins(msg: Message):
+    if msg.reply_to_message:
+        chat_id = msg.chat.id
+        replied_msg = msg.reply_to_message
+        admins = await bot.get_chat_administrators(chat_id)
+        admin_mentions = []
+
+        for admin in admins:
+            admin_mentions.append(f"@{admin.user.username}" if admin.user.username else f"[{admin.user.full_name}](tg://user?id={admin.user.id})")
+
+        user_name = msg.from_user.full_name
+        message_link = f"https://t.me/c/{str(chat_id)[4:]}/{replied_msg.message_id}"
+
+        mention_text = ", ".join(admin_mentions)
+        alert_text = f"{mention_text}, внимание! Пользователь {user_name} сообщил о проблеме: [сообщение]({message_link})"
+
+        await msg.answer(alert_text, parse_mode='Markdown')
+
+    else:
+        await msg.answer("Команду нужно использовать в ответ на сообщение, о котором вы хотите сообщить.")

@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/aleksandrcernikov/Desktop/Group-Moder",
+      "program": "/Users/aleksandrcernikov/Desktop/Group-Moder/build/Debug/outDebug"
+    }
+  ]
+}
