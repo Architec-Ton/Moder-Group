@@ -8,6 +8,7 @@ from aiogram.fsm.context import FSMContext
 from handlers.user_commands import *
 import logging
 from db import *
+import asyncio
 
 bot = Bot(config.bot_token.get_secret_value(), parse_mode='MarkDown')
 router = Router()
@@ -47,12 +48,16 @@ def create_settings_keyboard(settings):
     return builder.as_markup()
 
 
+async def delete_after_delay(message: Message):
+    await asyncio.sleep(300)
+    await bot.delete_message(message.chat.id, message.message_id)
+
+
 @router.message(Command("menu"))
 async def show_menu(msg: Message):
     if await is_admin(msg.chat.id, msg.from_user.id):
         settings = get_group_settings(msg.chat.id)
         
-        # Если настройки группы не найдены, добавим группу в базу данных
         if settings is None:
             add_group(msg.chat.id, msg.from_user.id)
             settings = get_group_settings(msg.chat.id)
@@ -60,7 +65,7 @@ async def show_menu(msg: Message):
         await msg.answer("Настройки:", reply_markup=create_settings_keyboard(settings))
     else:
         await msg.answer("Только администраторы могут использовать эту команду.")
-
+        asyncio.create_task(delete_after_delay(msg))
 
 @router.callback_query(SettingsCallback.filter())
 async def update_setting(callback: CallbackQuery, callback_data: SettingsCallback):
@@ -76,6 +81,7 @@ async def update_setting(callback: CallbackQuery, callback_data: SettingsCallbac
         await callback.message.edit_reply_markup(reply_markup=create_settings_keyboard(get_group_settings(group_id)))
     else:
         await callback.answer("Вы не админ", show_alert=True)
+    asyncio.create_task(delete_after_delay(callback.message))
 
 
 def contains_bad_word(message):
@@ -91,29 +97,29 @@ links = F.text.regexp(r"http[s]?://")
 @router.message(F.text.regexp(r"http[s]?://"))
 async def delete_link(msg: Message):
     settings = get_group_settings(msg.chat.id)
-    if settings and settings[2]:  # Обратная логика
+    if settings and settings[2]:
         if not await is_admin(msg.chat.id, msg.from_user.id):
             await msg.delete()
-            await msg.answer(f"Сообщение пользователя \"{msg.from_user.full_name}\" было *удалено*.\nПричина: *отправка ссылок запрещена.*")
+            bot_message = await msg.answer(f"Сообщение пользователя \"{msg.from_user.full_name}\" было *удалено*.\nПричина: *отправка ссылок запрещена.*")
+            asyncio.create_task(delete_after_delay(bot_message))
 
 @router.message(F.forward_from | F.forward_from_chat)
 async def handle_forward(msg: Message):
     settings = get_group_settings(msg.chat.id)
-    if settings and settings[3]:  # Обратная логика
+    if settings and settings[3]:
         if not await is_admin(msg.chat.id, msg.from_user.id) and msg.from_user.full_name != 'Telegram':
             await msg.delete()
-            if msg.forward_from:
-                reason = "сообщение переслано от пользователя"
-            elif msg.forward_from_chat:
-                reason = "сообщение переслано из чата"
-            await msg.answer(f"Сообщение пользователя \"{msg.from_user.full_name}\" было *удалено*.\nПричина: *{reason}*.")
+            reason = "сообщение переслано от пользователя" if msg.forward_from else "сообщение переслано из чата"
+            bot_message = await msg.answer(f"Сообщение пользователя \"{msg.from_user.full_name}\" было *удалено*.\nПричина: *{reason}*.")
+            asyncio.create_task(delete_after_delay(bot_message))
 
 @router.message()
 async def delete_bran(msg: Message):
     settings = get_group_settings(msg.chat.id)
-    if settings and settings[4]:  # Обратная логика
+    if settings and settings[4]:
         if contains_bad_word(msg.text) and not await is_admin(msg.chat.id, msg.from_user.id):
             await msg.delete()
-            await msg.answer(f"Сообщение пользователя *{msg.from_user.full_name}* было *удалено*.\nПричина: *использование нецензурной лексики*")
-            
+            bot_message = await msg.answer(f"Сообщение пользователя *{msg.from_user.full_name}* было *удалено*.\nПричина: *использование нецензурной лексики*")
+            asyncio.create_task(delete_after_delay(bot_message))
+
             
