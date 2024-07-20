@@ -9,9 +9,10 @@ from config_reader import config
 from datetime import timedelta 
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
+from aiogram.client.default import DefaultBotProperties
 import logging
 
-bot = Bot(config.bot_token.get_secret_value(), parse_mode='MarkDown')
+bot = Bot(config.bot_token.get_secret_value(), default=DefaultBotProperties(parse_mode="MarkDown"))
 router = Router()
 
 async def is_admin(msg: Message):

@@ -7,10 +7,11 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.fsm.context import FSMContext
 from handlers.user_commands import *
 import logging
+from aiogram.client.default import DefaultBotProperties
 from db import *
 import asyncio
 
-bot = Bot(config.bot_token.get_secret_value(), parse_mode='MarkDown')
+bot = Bot(config.bot_token.get_secret_value(), default=DefaultBotProperties(parse_mode="MarkDown"))
 router = Router()
 
 
@@ -39,7 +40,7 @@ def create_settings_keyboard(settings):
     buttons = [
         ("Удаление ссылок", "ban_links", settings[2]),
         ("Удаление пересылаемых сообщений", "ban_forwards", settings[3]),
-        ("Удаление нецензурной лексики", "ban_bad_words", settings[4]),
+        ("Удаление нецензурной лексики", "ban_bad_words", settings[4])
     ]
     for text, action, enabled in buttons:
         status = "✅" if enabled else "❌"
@@ -122,4 +123,7 @@ async def delete_bran(msg: Message):
             bot_message = await msg.answer(f"Сообщение пользователя *{msg.from_user.full_name}* было *удалено*.\nПричина: *использование нецензурной лексики*")
             asyncio.create_task(delete_after_delay(bot_message))
 
+    if len(msg.text) <=3 and not await is_admin(msg.chat.id, msg.from_user.id):
+        await msg.delete()
+        await msg.answer(f"Сообщение пользователя *{msg.from_user.full_name}* было *удалено*.\nПричина: сообщение не может быть короче трех символов")
             
