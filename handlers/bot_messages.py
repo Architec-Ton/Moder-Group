@@ -126,4 +126,4 @@ async def delete_bran(msg: Message):
     if len(msg.text) <=3 and not await is_admin(msg.chat.id, msg.from_user.id):
         await msg.delete()
         await msg.answer(f"Сообщение пользователя *{msg.from_user.full_name}* было *удалено*.\nПричина: сообщение не может быть короче трех символов")
-            
+        asyncio.create_task(delete_after_delay(bot_message))
