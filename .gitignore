@@ -3,3 +3,4 @@ bot_database.db
 __pycache__
 .dist
 .vscode
+.DS_Store

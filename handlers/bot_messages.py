@@ -1,7 +1,7 @@
 from aiogram.enums import ChatMemberStatus
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery
-from config_reader import config
+
 import re
 from aiogram.filters.callback_data import CallbackData
 from aiogram.fsm.context import FSMContext
@@ -10,26 +10,23 @@ import logging
 from aiogram.client.default import DefaultBotProperties
 from db import *
 import asyncio
+import sys
+sys.path.append("./censure")
+from censure import Censor
+
 
 bot = Bot(config.bot_token.get_secret_value(), default=DefaultBotProperties(parse_mode="MarkDown"))
 router = Router()
+
+censor_ru = Censor.get(lang='ru')
+
 
 
 async def is_admin(chat_id, user_id):
     member = await bot.get_chat_member(chat_id, user_id)
     return member.status in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR]
 
-bad_words = [
-    "блядь", "блять", "ебать", "ебаный", "ебать", "ебаться", "пизда", "пиздец",
-    "хуй", "хуёво", "хуевый", "хуеплет", "хуесос", "гандон", "мудак", "дерьмо",
-    "сучка", "сука", "пидор", "пидорас", "мразь", "тварь", "ублюдок", "срака",
-    "залупа", "чмо", "жопа", "бля", "дрянь", "шалава", "шлюха", "мудила",
-    "пиздюк", "гнида", "говно", "пошел на хуй", "иди нахуй", "черт", "еблан",
-    "ебанутый", "ебло", "пидарас", "пидор", "трахать", "ебись", "курва", "сукин сын",
-    "ебал", "ебать", "бля", "епта", "ёпта", "епт", "ёпт", "член", "dick", "шмара", 'сук',
-    "шалава", "пидр", "пидарас", 'трах', "долбоеб", "долбоёб", "далбаеб", "далбаёб", 'хуя',
-    'хуяк'
-]
+
 
 class SettingsCallback(CallbackData, prefix="settings"):
     action: str
@@ -85,12 +82,6 @@ async def update_setting(callback: CallbackQuery, callback_data: SettingsCallbac
     asyncio.create_task(delete_after_delay(callback.message))
 
 
-def contains_bad_word(message):
-    message_lower = message.lower()
-    for word in bad_words:
-        if word in message_lower:
-            return True
-    return False
 
 links = F.text.regexp(r"http[s]?://")
 
@@ -114,16 +105,24 @@ async def handle_forward(msg: Message):
             bot_message = await msg.answer(f"Сообщение пользователя \"{msg.from_user.full_name}\" было *удалено*.\nПричина: *{reason}*.")
             asyncio.create_task(delete_after_delay(bot_message))
 
+
+def check_bad_word(text):
+    info = censor_ru.clean_line(text)
+    _word = info[3][0] if info[1] else info[4][0] if info[2] else None
+    return not _word is None, _word, info
+
+
 @router.message()
 async def delete_bran(msg: Message):
     settings = get_group_settings(msg.chat.id)
     if settings and settings[4]:
-        if contains_bad_word(msg.text) and not await is_admin(msg.chat.id, msg.from_user.id):
+        check_word = check_bad_word(msg.text)
+        if check_word[0] and not await is_admin(msg.chat.id, msg.from_user.id):
             await msg.delete()
             bot_message = await msg.answer(f"Сообщение пользователя *{msg.from_user.full_name}* было *удалено*.\nПричина: *использование нецензурной лексики*")
             asyncio.create_task(delete_after_delay(bot_message))
 
     if len(msg.text) <=3 and not await is_admin(msg.chat.id, msg.from_user.id):
         await msg.delete()
-        await msg.answer(f"Сообщение пользователя *{msg.from_user.full_name}* было *удалено*.\nПричина: сообщение не может быть короче трех символов")
+        bot_message = await msg.answer(f"Сообщение пользователя *{msg.from_user.full_name}* было *удалено*.\nПричина: сообщение не может быть короче трех символов")
         asyncio.create_task(delete_after_delay(bot_message))
